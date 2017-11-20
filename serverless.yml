@@ -3,7 +3,7 @@ service: swof-api
 
 # Custom variables
 custom:
-  tableName: 'developers-table-${self:provider.stage}'
+  tableName: 'engineers-table-${self:provider.stage}'
 
 # Provider definition
 # We use AWS Lambda for our computational needs
@@ -22,9 +22,9 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource:
-        - { "Fn::GetAtt": ["DevelopersDynamoDBTable", "Arn" ] }
+        - { "Fn::GetAtt": ["EngineersDynamoDBTable", "Arn" ] }
   environment:
-    DEVELOPERS_TABLE: ${self:custom.tableName}
+    Engineers_TABLE: ${self:custom.tableName}
 
 # Lambda functions
 functions:
@@ -37,16 +37,16 @@ functions:
 # CloudFormation resource templates
 resources:
   Resources:
-    DevelopersDynamoDBTable:
+    EngineersDynamoDBTable:
       Type: 'AWS::DynamoDB::Table'
       Properties:
         AttributeDefinitions:
           -
-            AttributeName: developerId
+            AttributeName: engineerId
             AttributeType: S
         KeySchema:
           -
-            AttributeName: developerId
+            AttributeName: engineerId
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
