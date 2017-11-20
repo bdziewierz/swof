@@ -5,7 +5,8 @@ This is affectionately known as BAU. Currently, there is no tool which decides w
 all rotas are created and maintained by hand.
 
 This API selects two engineers at random to both complete a half day of support each.
-For the purposes of this system, we assume that we have 10 engineers.
+For the purposes of this system, we assume that we have 10 engineers. For simplicity we also assume
+7 days work week (no free weekends).
 
 # Business Rules
 There are some rules and these are liable to change in the future:
