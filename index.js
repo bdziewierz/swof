@@ -29,6 +29,13 @@ const engineers = [
     "Peter R."
 ];
 
+// CORS support
+swof.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
 // Return all available engineers
 swof.get("/engineers", function (req, res) {
     // Send the results back to the client
@@ -36,7 +43,7 @@ swof.get("/engineers", function (req, res) {
     res.json(engineers);
 });
 
-// Returns two engineers doing BAU in given day
+// Returns two engineers doing BAU in a given day
 swof.get("/bau/:date", function (req, res) {
     const teamSize = engineers.length;
     const bauLength = 43200000; // In milliseconds - currently half a day
@@ -44,13 +51,13 @@ swof.get("/bau/:date", function (req, res) {
     // Calculate current period, current bau and bau of a period.
     // Periods and baus are calculated starting from UNIX TIME (1970-01-01T00:00:00).
     let date = new Date(req.params.date);
-    if (Number.isNaN(date)) {
-        res.send(403, "Bad date format");
-        return;
-    }
     let period = Math.floor(date.getTime() / (bauLength * teamSize));
     let bau = date.getTime() / bauLength;
     let periodBau = bau % teamSize;
+    if (Number.isNaN(period)) {
+        res.send(403, "Bad date format");
+        return;
+    }
 
     // Create 3 adjacent shuffles of the engineers list, to make sure we've got seams covered and no
     // engineer will have repeated BAU on the seam of a period.
@@ -80,7 +87,10 @@ swof.get("/bau/:date", function (req, res) {
 
     // Send the results back to the client
     // res.json([period, bau, periodBau, seamless[teamSize + periodBau], seamless[teamSize + periodBau + 1], seamless]);
-    res.json([seamless[teamSize + periodBau], seamless[teamSize + periodBau + 1]]);
+    res.json({
+            "engineers": engineers,
+            "baus": [seamless[teamSize + periodBau], seamless[teamSize + periodBau + 1]]
+        });
 });
 
 // We wrap the app in serverless-http for use in API Gateway
