@@ -3,7 +3,7 @@ service: swof-api
 
 # Custom variables
 custom:
-  tableName: 'engineers-table-${self:provider.stage}'
+  tableName: 'engineers-${self:provider.stage}'
 
 # Provider definition
 # We use AWS Lambda for our computational needs
@@ -24,7 +24,7 @@ provider:
       Resource:
         - { "Fn::GetAtt": ["EngineersDynamoDBTable", "Arn" ] }
   environment:
-    Engineers_TABLE: ${self:custom.tableName}
+    ENGINEERS_TABLE: ${self:custom.tableName}
 
 # Lambda functions
 functions:
@@ -42,11 +42,11 @@ resources:
       Properties:
         AttributeDefinitions:
           -
-            AttributeName: engineerId
+            AttributeName: id
             AttributeType: S
         KeySchema:
           -
-            AttributeName: engineerId
+            AttributeName: id
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
