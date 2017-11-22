@@ -14,6 +14,16 @@ const seedrandom = require("seedrandom");
 const AWS = require("aws-sdk");
 const dynamoDb = new AWS.DynamoDB();
 
+// The modern version of the Fisher–Yates shuffle algorithm
+// https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+function shuffle(seed, array) {
+    const rng = seedrandom(seed);
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+};
+
 // CORS support
 swof.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
@@ -29,12 +39,17 @@ swof.get("/baus/:date", function (req, res) {
     }, function(err, data) {
         if (err) {
             res.send(500, "Unable to fetch data from DynamoDB " + err);
-            
+
         } else {
             let engineers = [];
             data.Items.forEach(function(element, index, array) {
                 engineers.push({id: element.id.S, name: element.name.S});
             });
+
+            // TODO: Check if we have enough engineers to accommodate nonconsecute use case
+
+            // TODO: Check if we have not too much engineers to accommodate 1 for full day requirement
+
             const teamSize = engineers.length;
             const bauLength = 43200000; // In milliseconds - currently half a day
 
@@ -49,37 +64,28 @@ swof.get("/baus/:date", function (req, res) {
                 return;
             }
 
-            // Create 3 adjacent shuffles of the engineers list, to make sure we've got seams covered and no
-            // engineer will have repeated BAU on the seam of a period.
-            // We bascially shuffle three copies of engineer list using adjacent period offsets as seed data,
-            // concat them and them make sure we've got no engineers doing double BAUS on seams.
-            const adjacentPeriods = [engineers.slice(), engineers.slice(), engineers.slice()];
-            let periodOffset = -1
-            for (let p in adjacentPeriods) {
+            // First shuffle the whole engineers table to add entropy
+            // We use length of the list as the seed, so that the resulting
+            // random order is always the same for each list.
+            shuffle(engineers.length, engineers);
 
-                // Seed the random generator using the current period
-                // and then shuffle the engineer list using modern Fisher-Yates algorithm.
-                // https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
-                // Seeding the random number generator allows us to have the random results predictable in time.
-                const rng = seedrandom(period + periodOffset);
-                for (let i = adjacentPeriods[p].length - 1; i > 0; i--) {
-                    const j = Math.floor(rng() * (i + 1));
-                    [adjacentPeriods[p][i], adjacentPeriods[p][j]] = [adjacentPeriods[p][j], adjacentPeriods[p][i]];
-                }
-                periodOffset++;
+            // Divide into two teams. Division enables us to avoid
+            // consecutive days for the same person on the 'seams' of the periods
+            const teams = [engineers.slice(0, Math.floor(engineers.length / 2)), engineers.slice(Math.floor(engineers.length / 2))];
+
+            // Shuffle each team using period as the seed.
+            // We use seed to make sure we've got repeatable results and the distribution is uniform.
+            for (let i in teams) {
+                shuffle(period, teams[i]);
             }
 
-            // Join shuffled copies of periods and merge them into seamless array
-            var seamless = adjacentPeriods[0].concat(adjacentPeriods[1]).concat(adjacentPeriods[2]);
-
-            // TODO: Confirm we have no repeats on the seams.
-
+            // Join both teams into one seamless period
+            const seamless = teams[0].concat(teams[1]);
 
             // Send the results back to the client
-            // res.json([period, bau, periodBau, seamless[teamSize + periodBau], seamless[teamSize + periodBau + 1], seamless]);
             res.json({
                 "engineers": engineers,
-                "baus": [seamless[teamSize + periodBau]["id"], seamless[teamSize + periodBau + 1]["id"]]
+                "baus": [seamless[periodBau]["id"], seamless[periodBau + 1]["id"]]
             });
         }
     });
