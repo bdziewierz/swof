@@ -46,9 +46,8 @@ swof.get("/baus/:date", function (req, res) {
                 engineers.push({id: element.id.S, name: element.name.S});
             });
 
-            // TODO: Check if we have enough engineers to accommodate nonconsecute use case
-
-            // TODO: Check if we have not too much engineers to accommodate 1 for full day requirement
+            // TODO: Check if we have enough engineers to accommodate 'nonconsecutive' use case
+            // TODO: Check if we have too many engineers to accommodate 'full day over two weeks' requirement
 
             const teamSize = engineers.length;
             const bauLength = 43200000; // In milliseconds - currently half a day
